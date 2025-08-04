@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Battler Game</title>
+    <meta name="description" content="A web-based game where you scan barcodes to generate digital creatures for turn-based battles">
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Barcode Battler">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <link rel="stylesheet" href="styles/main.css">
+    
+    <!-- Accessibility enhancements -->
+    <meta name="color-scheme" content="light dark">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    
+    <!-- Skip link styles -->
+    <style>
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 1000;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .skip-link:focus {
+            top: 6px;
+        }
+    </style>
+</head>
+<body role="application" aria-label="Barcode Battler Game">
+    <!-- Skip navigation link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Accessibility toolbar -->
+    <div id="accessibility-toolbar" class="accessibility-toolbar" role="toolbar" aria-label="Accessibility options">
+        <button id="toggle-high-contrast" class="accessibility-btn" aria-label="Toggle high contrast mode" title="High contrast mode">
+            <span aria-hidden="true">🎨</span>
+        </button>
+        <button id="toggle-large-text" class="accessibility-btn" aria-label="Toggle large text mode" title="Large text mode">
+            <span aria-hidden="true">🔍</span>
+        </button>
+        <button id="toggle-reduced-motion" class="accessibility-btn" aria-label="Toggle reduced motion mode" title="Reduced motion mode">
+            <span aria-hidden="true">⏸️</span>
+        </button>
+        <button id="toggle-screen-reader-mode" class="accessibility-btn" aria-label="Toggle screen reader optimizations" title="Screen reader mode">
+            <span aria-hidden="true">🔊</span>
+        </button>
+    </div>
+    <!-- Home Screen -->
+    <div id="home-screen" class="screen active" role="main" aria-labelledby="game-title">
+        <div class="container">
+            <header>
+                <h1 id="game-title" class="game-title">Barcode Battler</h1>
+                <p class="game-description" id="game-description">
+                    Scan barcodes to discover unique creatures and battle them in turn-based combat
+                </p>
+            </header>
+            
+            <main id="main-content">
+                <nav class="main-menu" role="navigation" aria-label="Main menu">
+                    <button id="scan-barcode-btn" class="menu-btn primary" 
+                            aria-describedby="scan-description">
+                        <span class="btn-icon" aria-hidden="true">📱</span>
+                        <span class="btn-text">Scan Barcode</span>
+                    </button>
+                    <div id="scan-description" class="btn-description">
+                        Use your camera or enter barcodes manually to discover creatures
+                    </div>
+                    
+                    <button id="view-collection-btn" class="menu-btn"
+                            aria-describedby="collection-description">
+                        <span class="btn-icon" aria-hidden="true">📚</span>
+                        <span class="btn-text">View Collection</span>
+                    </button>
+                    <div id="collection-description" class="btn-description">
+                        View and manage your discovered creatures
+                    </div>
+                    
+                    <button id="battle-btn" class="menu-btn"
+                            aria-describedby="battle-description">
+                        <span class="btn-icon" aria-hidden="true">⚔️</span>
+                        <span class="btn-text">Battle</span>
+                    </button>
+                    <div id="battle-description" class="btn-description">
+                        Battle your creatures against AI opponents
+                    </div>
+                    
+                    <button id="settings-btn" class="menu-btn"
+                            aria-describedby="settings-description">
+                        <span class="btn-icon" aria-hidden="true">⚙️</span>
+                        <span class="btn-text">Settings</span>
+                    </button>
+                    <div id="settings-description" class="btn-description">
+                        Adjust game settings and accessibility options
+                    </div>
+                </nav>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scanner Screen -->
+    <div id="scanner-screen" class="screen" role="main" aria-labelledby="scanner-title">
+        <div class="container">
+            <header class="screen-header">
+                <button id="back-from-scanner" class="back-btn" aria-label="Back to home screen">
+                    <span aria-hidden="true">←</span>
+                    <span class="sr-only">Back</span>
+                </button>
+                <h2 id="scanner-title">Scan Barcode</h2>
+            </header>
+            
+            <main class="scanner-container" role="main">
+                <div class="scanner-instructions" role="region" aria-labelledby="scanner-instructions-title">
+                    <h3 id="scanner-instructions-title" class="sr-only">Scanner Instructions</h3>
+                    <p>Point your camera at a barcode or enter one manually below</p>
+                </div>
+                
+                <div id="camera-container" class="camera-container" role="region" aria-labelledby="camera-region-title">
+                    <h3 id="camera-region-title" class="sr-only">Camera Scanner</h3>
+                    <video id="camera-video" autoplay playsinline 
+                           aria-label="Camera feed for barcode scanning"
+                           aria-describedby="camera-status"></video>
+                    <div id="scanner-overlay" class="scanner-overlay" aria-hidden="true">
+                        <div class="scanner-line"></div>
+                    </div>
+                    <div id="camera-status" class="camera-status sr-only" aria-live="polite">
+                        Camera not active
+                    </div>
+                </div>
+                
+                <div class="scanner-controls" role="group" aria-labelledby="scanner-controls-title">
+                    <h3 id="scanner-controls-title" class="sr-only">Scanner Controls</h3>
+                    <button id="toggle-camera-btn" class="btn secondary" 
+                            aria-describedby="camera-btn-description">
+                        <span class="btn-text">Start Camera</span>
+                        <span class="btn-loading hidden" aria-hidden="true">Starting...</span>
+                    </button>
+                    <div id="camera-btn-description" class="btn-description">
+                        Toggle camera for barcode scanning
+                    </div>
+                    
+                    <button id="manual-input-btn" class="btn"
+                            aria-describedby="manual-btn-description">
+                        Manual Input
+                    </button>
+                    <div id="manual-btn-description" class="btn-description">
+                        Enter barcode numbers manually
+                    </div>
+                </div>
+                
+                <div id="manual-input-container" class="manual-input-container hidden">
+                    <div class="input-group">
+                        <label for="barcode-input" class="input-label">Enter Barcode</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="barcode-input" 
+                                   placeholder="Enter barcode (8-20 digits)" 
+                                   pattern="[0-9]{8,20}" 
+                                   maxlength="20"
+                                   autocomplete="off"
+                                   aria-describedby="barcode-help barcode-validation">
+                            <div class="input-validation-icon" id="validation-icon" aria-hidden="true"></div>
+                        </div>
+                        <div class="input-help" id="barcode-help">
+                            Enter a numeric barcode with 8-20 digits. Try scanning a product barcode!
+                        </div>
+                        <div class="input-validation" id="barcode-validation" role="alert" aria-live="polite"></div>
+                    </div>
+                    
+                    <div class="barcode-examples">
+                        <h4>Try these examples:</h4>
+                        <div class="example-barcodes">
+                            <button class="example-barcode" data-barcode="12345678">12345678</button>
+                            <button class="example-barcode" data-barcode="87654321">87654321</button>
+                            <button class="example-barcode" data-barcode="11111111">11111111</button>
+                            <button class="example-barcode" data-barcode="99999999">99999999</button>
+                        </div>
+                    </div>
+                    
+                    <button id="generate-creature-btn" class="btn primary" disabled>
+                        <span class="btn-text">Generate Creature</span>
+                        <span class="btn-loading hidden">Generating...</span>
+                    </button>
+                </div>
+                
+                <div id="scan-feedback" class="scan-feedback hidden">
+                    <div class="feedback-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Screen -->
+    <div id="collection-screen" class="screen">
+        <div class="container">
+            <div class="screen-header">
+                <button id="back-from-collection" class="back-btn" aria-label="Back to home">←</button>
+                <h2>Creature Collection</h2>
+            </div>
+            
+            <div class="collection-controls">
+                <div class="collection-search">
+                    <input type="text" id="creature-search" placeholder="Search creatures..." 
+                           aria-label="Search creatures by name or barcode">
+                </div>
+                <select id="sort-select" class="sort-select" aria-label="Sort creatures">
+                    <option value="name">Sort by Name</option>
+                    <option value="level">Sort by Level</option>
+                    <option value="discovery">Sort by Discovery Date</option>
+                    <option value="hp">Sort by HP</option>
+                    <option value="attack">Sort by Attack</option>
+                    <option value="defense">Sort by Defense</option>
+                    <option value="speed">Sort by Speed</option>
+                </select>
+            </div>
+            
+            <div id="creature-grid" class="creature-grid">
+                <div class="empty-collection">
+                    <p>No creatures discovered yet!</p>
+                    <p>Scan some barcodes to start your collection.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Creature Detail Screen -->
+    <div id="creature-detail-screen" class="screen">
+        <div class="container">
+            <div class="screen-header">
+                <button id="back-from-detail" class="back-btn" aria-label="Back to collection">←</button>
+                <h2 id="creature-detail-name">Creature Details</h2>
+            </div>
+            
+            <div class="creature-detail-content">
+                <div class="creature-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Level:</span>
+                        <span id="detail-level" class="stat-value">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">HP:</span>
+                        <span id="detail-hp" class="stat-value">100/100</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Attack:</span>
+                        <span id="detail-attack" class="stat-value">50</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Defense:</span>
+                        <span id="detail-defense" class="stat-value">40</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Speed:</span>
+                        <span id="detail-speed" class="stat-value">30</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Experience:</span>
+                        <span id="detail-experience" class="stat-value">0/100</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Barcode:</span>
+                        <span id="detail-barcode" class="stat-value">123456789</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Battles Won:</span>
+                        <span id="detail-battles-won" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Battles Lost:</span>
+                        <span id="detail-battles-lost" class="stat-value">0</span>
+                    </div>
+                </div>
+                
+                <div class="creature-actions">
+                    <button id="battle-with-creature" class="btn primary">Battle with this Creature</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Difficulty Selection Screen -->
+    <div id="difficulty-screen" class="screen">
+        <div class="container">
+            <div class="screen-header">
+                <button id="back-from-difficulty" class="back-btn" aria-label="Back to collection">←</button>
+                <h2>Select Difficulty</h2>
+            </div>
+            
+            <div class="difficulty-selection">
+                <div class="difficulty-info">
+                    <p>Choose your battle difficulty. Higher difficulties offer greater rewards but tougher opponents!</p>
+                </div>
+                
+                <div id="difficulty-options" class="difficulty-options">
+                    <!-- Difficulty options will be populated by JavaScript -->
+                </div>
+                
+                <div class="difficulty-progress">
+                    <h3>Progress</h3>
+                    <div id="difficulty-progress-content">
+                        <!-- Progress information will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="battle-stats">
+                    <h3>Battle Statistics</h3>
+                    <div id="battle-stats-content">
+                        <!-- Battle statistics will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="difficulty-actions">
+                    <button id="start-battle-btn" class="select-difficulty-btn" disabled>
+                        Start Battle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Battle Screen -->
+    <div id="battle-screen" class="screen">
+        <div class="container">
+            <div class="screen-header">
+                <button id="back-from-battle" class="back-btn" aria-label="Back to collection">←</button>
+                <h2>Battle Arena</h2>
+            </div>
+            
+            <div class="battle-content">
+                <!-- Battle Status Bar -->
+                <div class="battle-status">
+                    <div class="battle-info">
+                        <span class="battle-turn">Turn <span id="battle-turn-count">1</span></span>
+                        <span class="battle-difficulty">Difficulty: <span id="battle-difficulty">Medium</span></span>
+                    </div>
+                    <div class="current-turn">
+                        <span id="current-turn-indicator">Your Turn</span>
+                    </div>
+                </div>
+
+                <!-- Enhanced Creature Display -->
+                <div class="battle-creatures">
+                    <div class="creature-panel player-panel">
+                        <div class="creature-header">
+                            <h3 id="player-creature-name" class="creature-name">Your Creature</h3>
+                            <div class="creature-level">Lv.<span id="player-level">1</span></div>
+                        </div>
+                        
+                        <div class="creature-avatar player-avatar">
+                            <div class="avatar-placeholder">🐾</div>
+                            <div class="creature-status" id="player-status"></div>
+                        </div>
+                        
+                        <div class="creature-hp-section">
+                            <div class="hp-label">Health Points</div>
+                            <div class="hp-bar-container">
+                                <div class="hp-bar">
+                                    <div id="player-hp-fill" class="hp-fill"></div>
+                                </div>
+                                <span id="player-hp-text" class="hp-text">100/100</span>
+                            </div>
+                        </div>
+                        
+                        <div class="creature-stats-detailed">
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <span class="stat-icon">⚔️</span>
+                                    <span class="stat-label">ATK</span>
+                                    <span id="player-attack" class="stat-value">50</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">🛡️</span>
+                                    <span class="stat-label">DEF</span>
+                                    <span id="player-defense" class="stat-value">40</span>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <span class="stat-icon">⚡</span>
+                                    <span class="stat-label">SPD</span>
+                                    <span id="player-speed" class="stat-value">30</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">✨</span>
+                                    <span class="stat-label">SP</span>
+                                    <span id="player-special-uses" class="stat-value">3</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="battle-center">
+                        <div class="vs-indicator">
+                            <span class="vs-text">VS</span>
+                            <div class="battle-effects" id="battle-effects"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="creature-panel opponent-panel">
+                        <div class="creature-header">
+                            <h3 id="opponent-creature-name" class="creature-name">Opponent</h3>
+                            <div class="creature-level">Lv.<span id="opponent-level">1</span></div>
+                        </div>
+                        
+                        <div class="creature-avatar opponent-avatar">
+                            <div class="avatar-placeholder">👹</div>
+                            <div class="creature-status" id="opponent-status"></div>
+                        </div>
+                        
+                        <div class="creature-hp-section">
+                            <div class="hp-label">Health Points</div>
+                            <div class="hp-bar-container">
+                                <div class="hp-bar">
+                                    <div id="opponent-hp-fill" class="hp-fill"></div>
+                                </div>
+                                <span id="opponent-hp-text" class="hp-text">100/100</span>
+                            </div>
+                        </div>
+                        
+                        <div class="creature-stats-detailed">
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <span class="stat-icon">⚔️</span>
+                                    <span class="stat-label">ATK</span>
+                                    <span id="opponent-attack" class="stat-value">45</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">🛡️</span>
+                                    <span class="stat-label">DEF</span>
+                                    <span id="opponent-defense" class="stat-value">35</span>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <span class="stat-icon">⚡</span>
+                                    <span class="stat-label">SPD</span>
+                                    <span id="opponent-speed" class="stat-value">25</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">🧠</span>
+                                    <span class="stat-label">AI</span>
+                                    <span id="opponent-ai-type" class="stat-value">Smart</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Battle Log -->
+                <div class="battle-log-section">
+                    <div class="battle-log-header">
+                        <h4>Battle Log</h4>
+                        <button id="clear-log-btn" class="btn-small secondary">Clear</button>
+                    </div>
+                    <div id="battle-log" class="battle-log">
+                        <div class="log-entry system">Battle begins!</div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Action Panel -->
+                <div class="battle-action-panel">
+                    <div class="action-header">
+                        <h4>Choose Your Action</h4>
+                        <div class="action-timer" id="action-timer"></div>
+                    </div>
+                    
+                    <div id="battle-actions" class="battle-actions">
+                        <button id="attack-btn" class="action-btn primary" data-action="attack">
+                            <div class="action-icon">⚔️</div>
+                            <div class="action-content">
+                                <div class="action-name">Attack</div>
+                                <div class="action-description">Basic attack with normal damage</div>
+                                <div class="action-stats">Damage: ~<span id="attack-damage-preview">20</span></div>
+                            </div>
+                        </button>
+                        
+                        <button id="special-attack-btn" class="action-btn secondary" data-action="special">
+                            <div class="action-icon">✨</div>
+                            <div class="action-content">
+                                <div class="action-name">Special Attack</div>
+                                <div class="action-description">Powerful attack with bonus damage</div>
+                                <div class="action-stats">
+                                    Damage: ~<span id="special-damage-preview">26</span> 
+                                    (<span id="special-uses-left">3</span> left)
+                                </div>
+                            </div>
+                        </button>
+                        
+                        <button id="defend-btn" class="action-btn defensive" data-action="defend">
+                            <div class="action-icon">🛡️</div>
+                            <div class="action-content">
+                                <div class="action-name">Defend</div>
+                                <div class="action-description">Reduce incoming damage and recover HP</div>
+                                <div class="action-stats">Heal: ~<span id="defend-heal-preview">10</span> HP</div>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div class="action-help">
+                        <div class="help-text" id="action-help-text">
+                            Select an action to continue the battle
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Battle Result Modal -->
+                <div id="battle-result" class="battle-result hidden">
+                    <div class="result-content">
+                        <div class="result-header">
+                            <h3 id="battle-result-title">Victory!</h3>
+                            <div class="result-icon" id="battle-result-icon">🏆</div>
+                        </div>
+                        
+                        <div class="result-details">
+                            <p id="battle-result-message">Your creature gained 50 experience points!</p>
+                            <div class="result-stats" id="battle-result-stats">
+                                <div class="result-stat">
+                                    <span class="stat-label">Battle Duration:</span>
+                                    <span id="battle-duration">2:34</span>
+                                </div>
+                                <div class="result-stat">
+                                    <span class="stat-label">Turns Taken:</span>
+                                    <span id="battle-turns">12</span>
+                                </div>
+                                <div class="result-stat">
+                                    <span class="stat-label">Damage Dealt:</span>
+                                    <span id="total-damage-dealt">156</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="result-actions">
+                            <button id="battle-continue-btn" class="btn primary">Continue</button>
+                            <button id="battle-rematch-btn" class="btn secondary">Rematch</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="screen">
+        <div class="container">
+            <div class="screen-header">
+                <button id="back-from-settings" class="back-btn" aria-label="Back to home">←</button>
+                <h2>Settings</h2>
+            </div>
+            
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label for="difficulty-select">Difficulty Level:</label>
+                    <select id="difficulty-select" class="setting-select">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="sound-toggle">Sound Effects:</label>
+                    <input type="checkbox" id="sound-toggle" checked>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="high-contrast-toggle">High Contrast Mode:</label>
+                    <input type="checkbox" id="high-contrast-toggle">
+                </div>
+                
+                <div class="setting-actions">
+                    <button id="backup-data-btn" class="btn secondary">Create Backup</button>
+                    <button id="restore-data-btn" class="btn secondary">Restore Backup</button>
+                    <button id="reset-data-btn" class="btn danger">Reset Game Data</button>
+                </div>
+                
+                <div class="storage-info">
+                    <h3>Storage Information</h3>
+                    <div id="storage-stats" class="storage-stats">
+                        <!-- Storage stats will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <input type="file" id="backup-file-input" accept=".json" style="display: none;">
+                <a id="backup-download-link" style="display: none;"></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="js/types.js"></script>
+    <script src="js/storage-manager.js"></script>
+    <script src="js/barcode-processor.js"></script>
+    <script src="js/creature-manager.js"></script>
+    <script src="js/camera-scanner.js"></script>
+    <script src="js/ai-opponent.js"></script>
+    <script src="js/battle-engine.js"></script>
+    <script src="js/battle-effects.js"></script>
+    <script src="js/difficulty-manager.js"></script>
+    <script src="js/accessibility-manager.js"></script>
+    <script src="js/optimization-utils.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>    <
+!-- Integration Status Indicator -->
+    <div id="integration-status" class="integration-status hidden">
+        <div class="integration-status-indicator"></div>
+        <span>All systems integrated</span>
+    </div>
+
+    <!-- Screen Reader Live Regions -->
+    <div id="polite-announcer" aria-live="polite" aria-atomic="true" style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;"></div>
+    <div id="assertive-announcer" aria-live="assertive" aria-atomic="true" style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;"></div>
